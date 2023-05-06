@@ -303,3 +303,11 @@ table > tbody > tr > td {
 .modal-container.show {
     display: flex;
 }
+.page-break {
+    page-break-before: always;
+}
+@media print {
+    @page {
+        size: landscape;
+    }
+}

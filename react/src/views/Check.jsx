@@ -13,19 +13,19 @@ export default function Check() {
   }, [])
 
   const onDeleteClick = check => {
-    if (!window.confirm("Are you sure you want to delete this check?")) {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce chéque?")) {
       return
     }
-    axiosClient.delete(`/check/${check.id}`)
+    axiosClient.delete(`/checks/${check.id}`)
       .then(() => {
-        setNotification('Check was successfully deleted')
+        setNotification('Le chéque a été supprimé avec succès')
         getChecks()
       })
   }
 
   const getChecks = () => {
     setLoading(true)
-    axiosClient.get('/checks')
+    axiosClient.get(`/checks-valid-all/${localStorage.getItem('USER_ID')}`)
       .then(({ data }) => {
         setLoading(false)
         setChecks(data.data)
@@ -37,21 +37,86 @@ export default function Check() {
   }
 
   const validateCheck = check => {
-    if (!window.confirm("Are you sure you want to validate this check?")) {
+    if (!window.confirm("Voulez-vous vraiment effectuer ce chéque?")) {
       return
     }
     axiosClient.patch(`/check-validate/${check.id}`)
       .then(() => {
-        setNotification('Check was successfully validated')
+        setNotification('Le chéque a été effectué avec succès')
         getChecks()
       })
   }
 
+  const handleFilterByDate = (e) => {
+    const date = e.target.value;
+    console.log(date)
+    if (date) {
+      axiosClient.get(`/checks-valid-all/${localStorage.getItem('USER_ID')}?date=${date}`)
+        .then(({ data }) => {
+          setLoading(false)
+          setChecks(data.data)
+        })
+        .catch(() => {
+          setLoading(false)
+        })
+    }
+    else {
+      getChecks();
+    }
+  }
+
+  const handleFilterByStatus = (e) => {
+    const status = e.target.value;
+    console.log(status)
+    if (status) {
+      axiosClient.get(`/checks-valid-all/${localStorage.getItem('USER_ID')}?status=${status}`)
+        .then(({ data }) => {
+          setLoading(false)
+          setChecks(data.data)
+        })
+        .catch(() => {
+          setLoading(false)
+        })
+    }
+    else {
+      getChecks();
+    }
+  }
+
+  const handleFilterByValidated = (e) => {
+    const validated = e.target.checked;
+    if (validated) {
+      axiosClient.get(`/checks-valid-all/${localStorage.getItem('USER_ID')}?validated=${validated}`)
+        .then(({ data }) => {
+          setLoading(false)
+          setChecks(data.data)
+        })
+        .catch(() => {
+          setLoading(false)
+        })
+    }
+    else {
+      getChecks();
+    }
+  }
   return (
     <div>
       <div style={{display: 'flex', justifyContent: "space-between", alignItems: "center"}}>
-        <h1>Chéques</h1>
-        <Link className="btn-add" to="/check/new">Ajouter</Link>
+        <h1>Les chéques</h1>
+        <div  style={{display: 'flex', justifyContent: "space-between", alignItems: "center"}}>
+          <select className="form-select" onChange={e => handleFilterByStatus(e)}>
+            <option selected value="">Tous</option>
+            <option value="Entrant">Entrant</option>
+            <option value="Sortant">Sortant</option>
+          </select>
+          &nbsp;
+          <input type="date" className="form-control" onChange={e => handleFilterByDate(e)} />
+          &nbsp;
+          <input type="checkbox" className="form-check-input" onChange={e => handleFilterByValidated(e)} />
+          &nbsp;
+          <label>Validé</label>
+        </div>
+        <Link className="btn-add" to="/check/new">Ajouter <i className="bi bi-plus-lg"></i></Link>
       </div>
       <div className="card animated fadeInDown">
         <table>
@@ -75,7 +140,7 @@ export default function Check() {
             </tr>
             </tbody>
           }
-          {!loading &&
+          {!loading && checks.length !== 0 &&
             <tbody>
             {checks.map(c => (
               <tr key={c.id}>

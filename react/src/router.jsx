@@ -14,6 +14,11 @@ import Monthly from "./views/Monthly.jsx";
 import Check from "./views/Check.jsx";
 import CheckForm from "./views/CheckForm.jsx";
 import Event from "./views/Event.jsx";
+import ExpenseForm from "./views/ExpenseForm.jsx";
+import EventForm from "./views/EventForm.jsx";
+import Annual from "./views/Annual.jsx";
+import Category from "./views/Category.jsx";
+import CategoryForm from "./views/CategoryForm.jsx";
 
 const router = createBrowserRouter([
   {
@@ -22,7 +27,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Navigate to="/users"/>
+        element: <Navigate to="/salaries"/>
       },
       {
         path: '/dashboard',
@@ -49,12 +54,20 @@ const router = createBrowserRouter([
         element: <SalaryForm key="salaryCreate" />
       },
       {
+        path: '/salary/:id',
+        element: <SalaryForm key="salaryUpdate" />
+      },
+      {
         path: '/expenses',
         element: <Expense/>
       },
       {
-        path: '/expenses/new',
-        element: <SalaryForm key="expenseCreate" />
+        path: '/expense/new',
+        element: <ExpenseForm key="expenseCreate" />
+      },
+      {
+        path: '/expense/:id',
+        element: <ExpenseForm key="salaryUpdate" />
       },
       {
         path: '/monthly',
@@ -75,6 +88,30 @@ const router = createBrowserRouter([
       {
         path: '/event',
         element: <Event key="eventCreate" />
+      },
+      {
+        path: '/event/:id',
+        element: <EventForm key="eventUpdate" />
+      },
+      {
+        path: '/event/new',
+        element: <EventForm key="eventCreate" />
+      },
+      {
+        path: '/annual',
+        element: <Annual/>
+      },
+      {
+        path: '/categories',
+        element: <Category/>
+      },
+      {
+        path: '/category/new',
+        element: <CategoryForm key="categoryCreate" />
+      },
+      {
+        path: '/category/:id',
+        element: <CategoryForm key="categoryUpdate" />
       }
     ]
   },

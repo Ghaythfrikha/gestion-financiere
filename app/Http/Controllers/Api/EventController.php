@@ -44,35 +44,50 @@ class EventController extends Controller
 
     public function destroy(Event $event)
     {
+        Expense::query()->where('event_id', $event->id)->delete();
         $event->delete();
-
         return response(null, 204);
     }
 
-    public function userEvents($id)
+    public function userEvents($id, $month = null, $year = null)
     {
+        // get all events by user id, get all expenses by event id, sum all expenses by event id and return each event with the sum of it's expenses
+        $events = Event::query()
+            ->where('user_id', $id)
+            ->whereMonth('date', $month ?? (now()->month))
+            ->whereYear('date', $year ?? (now()->year))
+            ->get();
+        foreach ($events as $event) {
+            $event->expenses = Expense::query()->where('event_id', $event->id)->sum('amount');
+        }
+        return EventResource::collection($events);
+    }
+
+    public function userEventsAll($id)
+    {
+        // get all events by user id, get all expenses by event id, sum all expenses by event id and return each event with the sum of it's expenses
         $events = Event::query()
             ->where('user_id', $id)
             ->get();
-        $eventTotal = 0;
         foreach ($events as $event) {
-            // total expenses for each event
-            $eventTotal += Expense::query()
-                ->where('event_id', $event->id)
-                ->sum('amount');
+            $event->expenses = Expense::query()->where('event_id', $event->id)->sum('amount');
         }
-        // collapse each event with its total expenses
-        $events = $events->map(function ($event) use ($eventTotal) {
-            return [
-                'id' => $event->id,
-                'user_id' => $event->user_id,
-                'amount' => $event->amount,
-                'date' => $event->date,
-                'description' => $event->description,
-                'type' => $event->type,
-                'total' => $eventTotal
-            ];
-        });
-        return response()->json($events);
+        return EventResource::collection($events);
+    }
+
+    public function userEventsYear($id, $year = null)
+    {
+        $events = Event::query()
+            ->where('user_id', $id)
+            ->whereYear('date', $year ?? (now()->year))
+            ->get();
+        foreach ($events as $event) {
+            $event->expenses = Expense::query()->where('event_id', $event->id)->sum('amount');
+        }
+        // dd($events);
+        // create an array of events and expenses
+        // return the array
+
+        return EventResource::collection($events);
     }
 }

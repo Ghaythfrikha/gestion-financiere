@@ -46,4 +46,13 @@ class CategoryController extends Controller
 
         return response(null, 204);
     }
+
+    // get categories by user id
+    public function getCategoriesByUserId($id)
+    {
+        $categories = Category::query()
+            ->where('user_id', $id)
+            ->get();
+        return CategoryResource::collection($categories);
+    }
 }

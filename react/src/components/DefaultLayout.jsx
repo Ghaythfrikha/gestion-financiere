@@ -2,6 +2,7 @@ import {Link, Navigate, Outlet} from "react-router-dom";
 import {useStateContext} from "../context/ContextProvider";
 import axiosClient from "../axios-client.js";
 import {useEffect} from "react";
+import logo from "../assets/logo.png";
 
 export default function DefaultLayout() {
   const {user, token, setUser, setToken, notification} = useStateContext();
@@ -29,24 +30,28 @@ export default function DefaultLayout() {
 
   return (
     <div id="defaultLayout">
-      <aside>
+      <aside className="fixed h-100">
+        <img src={logo} alt="logo" width="100%"/>
         <Link to="/dashboard">Dashboard</Link>
-        <Link to="/users">Users</Link>
-        <Link to="/salaries">Salaries</Link>
-        <Link to="/expenses">Expenses</Link>
+        {/*<Link to="/users">Users</Link>*/}
+        <Link to="/salaries">Salaires</Link>
+        <Link to="/expenses">Dépences</Link>
         <Link className="text-capitalize" to="/event">événement</Link>
         <Link to="/check">Chéques</Link>
         <Link to="/monthly">Rapport Mensuel</Link>
+        <Link to="/annual">Rapport Annuel</Link>
+        <Link to="/categories">Catégories</Link>
       </aside>
+      <aside></aside>
       <div className="content">
         <header>
           <div>
-            Header
+
           </div>
 
           <div>
             {user.name} &nbsp; &nbsp;
-            <a onClick={onLogout} className="btn-logout" href="#">Logout</a>
+            <a onClick={onLogout} className="btn-logout" href="#">Déconnexion</a>
           </div>
         </header>
         <main>

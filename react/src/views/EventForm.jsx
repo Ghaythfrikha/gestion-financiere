@@ -3,17 +3,15 @@ import {useEffect, useState} from "react";
 import axiosClient from "../axios-client.js";
 import {useStateContext} from "../context/ContextProvider.jsx";
 
-export default function CheckForm() {
+export default function EventForm() {
   const navigate = useNavigate();
   let {id} = useParams();
-  const [check, setCheck] = useState({
+  const [event, setEvent] = useState({
     id: null,
     amount: '',
     description: '',
     user_id: '',
-    date: '',
-    status: '',
-    number: '',
+    type: '',
   })
   const [errors, setErrors] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -24,15 +22,15 @@ export default function CheckForm() {
     axiosClient.get('/user')
       .then(({data}) => {
         setUser(data)
-      })
+      });
   }, [])
   if (id) {
     useEffect(() => {
       setLoading(true)
-      axiosClient.get(`/checks/${id}`)
+      axiosClient.get(`/events/${id}`)
         .then(({data}) => {
           setLoading(false)
-          setCheck(data)
+          setEvent(data)
         })
         .catch(() => {
           setLoading(false)
@@ -42,12 +40,11 @@ export default function CheckForm() {
 
   const onSubmit = ev => {
     ev.preventDefault()
-    console.log(check)
-    if (check.id) {
-      axiosClient.put(`/checks/${check.id}`, check)
+    if (event.id) {
+      axiosClient.put(`/events/${event.id}`, event)
         .then(() => {
-          setNotification('Le chéque a été modifié avec succès')
-          navigate('/check')
+          setNotification('événement a été modifié avec succès')
+          navigate('/event')
         })
         .catch(err => {
           const response = err.response;
@@ -55,13 +52,13 @@ export default function CheckForm() {
             setErrors(response.data.errors)
           }
         })
-    }
-    else {
-      check.user_id = user.id
-      axiosClient.post('/checks', check)
+    } else {
+      event.user_id = user.id
+      event.date = new Date().toISOString().slice(0, 10)
+      axiosClient.post('/events', event)
         .then(() => {
-          setNotification('Le chéque a été ajouté avec succès')
-          navigate('/check')
+          setNotification('événement a été ajouté avec succès')
+          navigate('/event')
         })
         .catch(err => {
           const response = err.response;
@@ -72,10 +69,23 @@ export default function CheckForm() {
     }
   }
 
+  function translateErrorMessage(errorMessage) {
+    switch (errorMessage) {
+      case 'The amount field is required.':
+        return 'Le montant est obligatoire.';
+      case 'The description field is required.':
+        return 'La description est obligatoire.';
+      case 'The type field is required.':
+        return 'Le type est obligatoire.';
+      default:
+        return errorMessage;
+    }
+  }
+
   return (
     <>
-      {check.id && <h1 className="text-center">Modifier chéque: {check.name}</h1>}
-      {!check.id && <h1 className="text-center">Nouveau chéque</h1>}
+      {event.id && <h1 className="text-center">Modifier événement: {event.description}</h1>}
+      {!event.id && <h1 className="text-center">Nouveau événement</h1>}
       <div className="card animated fadeInDown w-50 align-items-center mt-5 ml-96">
         {loading && (
           <div className="text-center">
@@ -85,24 +95,18 @@ export default function CheckForm() {
         {errors &&
           <div className="alert bg-danger text-white">
             {Object.keys(errors).map(key => (
-              <p key={key}>{errors[key][0]}</p>
+              <p key={key}>{translateErrorMessage(errors[key][0])}</p>
             ))}
           </div>
         }
         {!loading && (
-          <form onSubmit={onSubmit}>
-            <input value={check.amount} onChange={ev => setCheck({...check, amount: ev.target.value})}
+          <form onSubmit={onSubmit} className="">
+            <input value={event.amount} onChange={ev => setEvent({...event, amount: ev.target.value})}
                    placeholder="Montant"/>&nbsp;
-            <input value={check.number} onChange={ev => setCheck({...check, number: ev.target.value})}
-                   placeholder="Numéro"/>&nbsp;
-            <select defaultValue={check.status} className="form-select" name="" id="" onChange={ev => setCheck({...check, status: ev.target.value})}>
-              <option value="">Choisir le status</option>
-              <option value="Entrant">Entrant</option>
-              <option value="Sortant">Sortant</option>
-            </select>&nbsp;
-            <input type="date" className="form-control" value={check.date.slice(0,10)} onChange={ev => setCheck({...check,date: ev.target.value})}/>&nbsp;
-            <input value={check.description} onChange={ev => setCheck({...check, description: ev.target.value})}
+            <input value={event.description} onChange={ev => setEvent({...event, description: ev.target.value})}
                    placeholder="Description"/>&nbsp;
+            <input value={event.type} onChange={ev => setEvent({...event, type: ev.target.value})}
+                   placeholder="Type"/>
             <button className="btn-add mt-3 rounded">Enregistrer</button>
           </form>
         )}

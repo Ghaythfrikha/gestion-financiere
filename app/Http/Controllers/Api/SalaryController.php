@@ -8,6 +8,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateSalaryRequest;
 use App\Http\Resources\SalaryResource;
 use App\Models\Salary;
+use DateTime;
 use Illuminate\Http\Request;
 
 class SalaryController extends Controller
@@ -57,4 +58,40 @@ class SalaryController extends Controller
         $total = $salaries->sum('amount');
         return response()->json(['salaries' => SalaryResource::collection($salaries), 'total' => $total]);
     }
+
+    public function userSalariesAll($id)
+    {
+        $salaries = Salary::query()
+            ->where('user_id', $id)
+            ->get();
+        return SalaryResource::collection($salaries);
+    }
+
+    // get all salaries for a user in a specific year or null
+    public function userSalariesYear($id, $year = null)
+    {
+        $salaries = Salary::query()
+            ->where('user_id', $id)
+            ->whereYear('date', $year ?? (now()->year))
+            ->get();
+
+        $monthlySalaries = $salaries->groupBy(function ($salary) {
+            $date = $salary->date;
+            $date = new DateTime($date);
+            return $date->format('F');
+        })->map(function ($salaries) {
+            return $salaries->sum('amount');
+        })->toArray();
+
+        $monthlySalaries = array_map(function ($total) {
+            return round($total, 2);
+        }, $monthlySalaries);
+        $total = $salaries->sum('amount');
+        return response()->json([
+            'salaries' => SalaryResource::collection($salaries),
+            'monthlySalaries' => $monthlySalaries,
+            'total' => $total
+        ]);
+    }
+
 }

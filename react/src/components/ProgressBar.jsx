@@ -4,7 +4,7 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 function ProgressBarElement({value, label}) {
 
   return (
-    <ProgressBar now={value} label={`${label} %`}/>
+    <ProgressBar animated={true} striped={true} now={value} label={`${label} %`}/>
   );
 }
 

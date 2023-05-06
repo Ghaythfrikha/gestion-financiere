@@ -12,11 +12,17 @@ class Category extends Model
     protected $table = 'category';
 
     protected $fillable = [
-        'name'
+        'name',
+        'user_id'
     ];
 
     public function expences()
     {
         return $this->hasMany(Expense::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

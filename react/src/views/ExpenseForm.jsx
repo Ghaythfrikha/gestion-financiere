@@ -3,10 +3,10 @@ import {useEffect, useState} from "react";
 import axiosClient from "../axios-client.js";
 import {useStateContext} from "../context/ContextProvider.jsx";
 
-export default function SalaryForm() {
+export default function ExpenseForm() {
   const navigate = useNavigate();
   let {id} = useParams();
-  const [salary, setSalary] = useState({
+  const [expense, setExpense] = useState({
     id: null,
     amount: '',
     description: '',
@@ -16,20 +16,22 @@ export default function SalaryForm() {
   const [loading, setLoading] = useState(false)
   const {setNotification} = useStateContext()
   const [user, setUser] = useState({})
+  const [categories, setCategories] = useState([])
 
   useEffect(() => {
     axiosClient.get('/user')
       .then(({data}) => {
         setUser(data)
-      })
+      });
+    getCategories();
   }, [])
   if (id) {
     useEffect(() => {
       setLoading(true)
-      axiosClient.get(`/salaries/${id}`)
+      axiosClient.get(`/expenses/${id}`)
         .then(({data}) => {
           setLoading(false)
-          setSalary(data)
+          setExpense(data)
         })
         .catch(() => {
           setLoading(false)
@@ -39,11 +41,11 @@ export default function SalaryForm() {
 
   const onSubmit = ev => {
     ev.preventDefault()
-    if (salary.id) {
-      axiosClient.put(`/salaries/${salary.id}`, salary)
+    if (expense.id) {
+      axiosClient.put(`/expenses/${expense.id}`, expense)
         .then(() => {
-          setNotification('Salaire a été modifié avec succès')
-          navigate('/salaries')
+          setNotification('Dépence a été modifié avec succès')
+          navigate('/expenses')
         })
         .catch(err => {
           const response = err.response;
@@ -51,14 +53,13 @@ export default function SalaryForm() {
             setErrors(response.data.errors)
           }
         })
-    }
-    else {
-      salary.user_id = user.id
-      salary.date = new Date().toISOString().slice(0, 10)
-      axiosClient.post('/salaries', salary)
+    } else {
+      expense.user_id = user.id
+      expense.date = new Date().toISOString().slice(0, 10)
+      axiosClient.post('/expenses', expense)
         .then(() => {
-          setNotification('Salaire a été ajouté avec succès')
-          navigate('/salaries')
+          setNotification('Dépence a été ajouté avec succès')
+          navigate('/expenses')
         })
         .catch(err => {
           const response = err.response;
@@ -68,20 +69,31 @@ export default function SalaryForm() {
         })
     }
   }
+
   function translateErrorMessage(errorMessage) {
     switch (errorMessage) {
       case 'The amount field is required.':
         return 'Le montant est obligatoire.';
       case 'The description field is required.':
         return 'La description est obligatoire.';
+      case 'The category id field is required.':
+        return 'La catégorie est obligatoire.';
       default:
         return errorMessage;
     }
   }
+
+  const getCategories = () => {
+    axiosClient.get('/categories')
+      .then(({data}) => {
+        setCategories(data.data)
+      })
+  }
+
   return (
     <>
-      {salary.id && <h1 className="text-center">Modifier recette: {salary.description}</h1>}
-      {!salary.id && <h1 className="text-center">Nouvelle recette</h1>}
+      {expense.id && <h1 className="text-center">Modifier dépence: {expense.description}</h1>}
+      {!expense.id && <h1 className="text-center">Nouvelle dépence</h1>}
       <div className="card animated fadeInDown w-50 align-items-center mt-5 ml-96">
         {loading && (
           <div className="text-center">
@@ -97,10 +109,16 @@ export default function SalaryForm() {
         }
         {!loading && (
           <form onSubmit={onSubmit} className="">
-            <input value={salary.amount} onChange={ev => setSalary({...salary, amount: ev.target.value})}
+            <input value={expense.amount} onChange={ev => setExpense({...expense, amount: ev.target.value})}
                    placeholder="Montant"/>&nbsp;
-            <input value={salary.description} onChange={ev => setSalary({...salary, description: ev.target.value})}
+            <input value={expense.description} onChange={ev => setExpense({...expense, description: ev.target.value})}
                    placeholder="Description"/>
+            <select className="form-select w-100 mt-4" onChange={ev => setExpense({...expense, category_id: ev.target.value})}>
+              <option value="">Choisir une catégorie</option>
+              {categories.map(category => (
+                <option selected={expense.category === category.name} key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
             <button className="btn-add mt-3 rounded">Enregistrer</button>
           </form>
         )}

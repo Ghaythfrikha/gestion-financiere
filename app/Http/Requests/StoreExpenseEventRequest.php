@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateEventRequest extends FormRequest
+class StoreExpenseEventRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,9 +25,10 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             'amount' => 'required|numeric',
-            'description' => 'required|string',
             'date' => 'required|date',
-            'type' => 'required|string',
+            'user_id' => 'required|integer|exists:users,id',
+            'description' => 'nullable|string',
+            'event_id' => 'nullable|integer|exists:event,id',
         ];
     }
 }

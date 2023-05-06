@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import axiosClient from "../axios-client.js";
 import {Link} from "react-router-dom";
 import {useStateContext} from "../context/ContextProvider.jsx";
-
+import Modal from "react-bootstrap/Modal";
 export default function Expense() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,19 +14,19 @@ export default function Expense() {
   }, [])
 
   const onDeleteClick = user => {
-    if (!window.confirm("Are you sure you want to delete this salary?")) {
+    if (!window.confirm("Voulez-vous vraiment supprimer cette dépence?")) {
       return
     }
     axiosClient.delete(`/expenses/${user.id}`)
       .then(() => {
-        setNotification('Salary was successfully deleted')
+        setNotification('Dépence supprimée avec succès')
         getExpenses()
       })
   }
 
   const getExpenses = () => {
     setLoading(true)
-    axiosClient.get('/expenses')
+    axiosClient.get(`user-expenses-all/${localStorage.getItem('USER_ID')}`)
       .then(({data}) => {
         setLoading(false)
         setExpenses(data.data)
@@ -92,68 +92,82 @@ export default function Expense() {
   return (
     <div>
       <div style={{display: 'flex', justifyContent: "space-between", alignItems: "center"}}>
-        <h1>Expenses</h1>
-        <select onChange={(e) => setSelectedYear(e.target.value)} defaultValue={new Date().getFullYear()}>
-          <option value="">Select year</option>
+        <h1>Les dépences</h1>
+        <select className="form-select w-50" onChange={(e) => setSelectedYear(e.target.value)} defaultValue={new Date().getFullYear()}>
+          <option value="" selected>Sélectionner une année</option>
           {years.map((year) => (
             <option key={year} value={year}>{year}</option>
           ))}
         </select>
-        <Link className="btn-add" to="/salary/new">Add new</Link>
+        <Link className="btn-add" to="/expense/new">Ajouter <i className="bi bi-plus-lg"></i></Link>
       </div>
-      <div className="card-container" style={{display: "flex", justifyContent: "space-evenly", alignItems: "center"}}>
+      <div style={{display: "flex", justifyContent: "space-evenly", alignItems: "center", marginTop: "40px",flexWrap:"wrap"}}>
         {filteredExpense.map(({key, total}) => (
-          <div className="card" key={key}>
-            <div className="card-header" style={{marginBottom: 20}}>
-              <h2>{new Date(key).toLocaleDateString('en-US', {year: 'numeric', month: 'long'})}</h2>
+          <div className=" bg-white min-h-48 p-3 mb-4 font-medium">
+            <div className="w-52 flex-none rounded-t lg:rounded-t-none lg:rounded-l text-center shadow-lg ">
+              <div className="block rounded-t overflow-hidden  text-center ">
+                <div className="bg-red-500 text-white py-1 text-capitalize">{new Date(key).toLocaleDateString('fr-FR', {year: 'numeric', month: 'long'})}</div>
+                <div className="pt-1 border-l border-r border-white bg-white mt-3">
+                  <span className="text-4xl font-bold leading-tight">{total} DT</span>
+                </div>
+                <div className="border-l border-r border-b rounded-b-lg text-center border-white bg-white pt-2 mb-3 mt-3">
+                  <button className="bg-gray-200 p-1 rounded" onClick={() => openModal(key)}>Détaille <i className="bi bi-arrow-right"></i></button>
+                </div>
+              </div>
             </div>
-            <div className="card-body" style={{marginBottom: 20}}>
-              <p>Total: {total}</p>
-            </div>
-            <button className="btn btn-primary" onClick={() => openModal(key)}>View</button>
           </div>
+          // <div className='flex sm:flex-row flex-col space-y-2 sm:space-x-2 flex-row w-full items-center justify-center'>
+          //   <div
+          //     className='flex flex-wrap flex-row sm:flex-col justify-center items-center  p-5 bg-white rounded-md shadow-xl border-l-4 border-red-500'>
+          //     <div>
+          //       <div className="font-bold text-capitalize">
+          //         {new Date(key).toLocaleDateString('fr-FR', {year: 'numeric', month: 'long'})}
+          //       </div>
+          //       <div className="font-bold text-sm">
+          //         {total} DT
+          //       </div>
+          //       <div className="font-bold text-sm pt-4">
+          //         <button className="btn btn-primary" onClick={() => openModal(key)}>Détaille</button>
+          //       </div>
+          //     </div>
+          //   </div>
+          // </div>
         ))}
       </div>
-      {selectedMonth && (
-        <div className="modal-container show">
-          <div className="modal">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3>{selectedMonth}</h3>
-                <button className="btn btn-primary" onClick={closeModal}>Close</button>
-              </div>
-              <div className="modal-body">
-                <table className="table">
-                  <thead>
-                  <tr>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Actions</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  {groupedExpenses[selectedMonth].map(expense => (
-                    <tr key={expense.id}>
-                      <td>{expense.amount}</td>
-                      <td>{expense.description}</td>
-                      <td>{expense.date}</td>
-                      <td>{expense.category}</td>
-                      <td>
-                        <Link className="btn-edit" to={`/salary/${expense.id}`}>Edit</Link> &nbsp;
-                        <button className="btn-delete" onClick={() => onDeleteClick(expense)}>Delete</button>
-
-                      </td>
-                    </tr>
-                  ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal show={selectedMonth} onHide={closeModal} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title className="text-capitalize">Dépences de {new Date(selectedMonth).toLocaleDateString('fr-FR', {year: 'numeric', month: 'long'})}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <table className="table table-striped">
+            <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Montant</th>
+              <th scope="col">Description</th>
+              <th scope="col">Catégorie</th>
+              <th className="text-capitalize" scope="col">événement</th>
+              <th scope="col">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {getSalariesByMonth(selectedMonth)?.map((expense) => (
+              <tr key={expense.id}>
+                <td>{new Date(expense.date).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric',hour:"numeric",minute:"numeric"})}</td>
+                <td>{expense.amount} DT</td>
+                <td>{expense.description}</td>
+                <td>{expense.category}</td>
+                <td>{expense.event}</td>
+                <td>
+                  <Link to={`/expense/${expense.id}`}><i className="bi bi-pencil-square cursor-pointer text-primary"></i></Link>&nbsp;&nbsp;
+                  <i className="bi bi-trash cursor-pointer text-danger" onClick={()=>onDeleteClick(expense)}></i>
+                </td>
+              </tr>
+            ))}
+            </tbody>
+          </table>
+        </Modal.Body>
+      </Modal>
     </div>
   )
 }

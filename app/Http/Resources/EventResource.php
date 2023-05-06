@@ -21,6 +21,7 @@ class EventResource extends JsonResource
             'date' => $this->date,
             'type' => $this->type,
             'amount' => $this->amount,
+            'expenses' => $this->expenses,
         ];
     }
 }

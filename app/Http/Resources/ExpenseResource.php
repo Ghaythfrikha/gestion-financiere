@@ -21,8 +21,8 @@ class ExpenseResource extends JsonResource
             'amount' => $this->amount,
             'description' => $this->description,
             'date' => $this->date,
-            'category' => $this->category->name,
-            'event' => $this->event ? $this->event->name : null,
+            'category' => $this->category ? $this->category->name : null,
+            'event' => $this->event ? $this->event->type : null,
         ];
     }
 }

@@ -24,10 +24,9 @@ class UpdateExpenseRequest extends FormRequest
     public function rules()
     {
         return [
-            'name' => 'required|string|max:255',
             'amount' => 'required|numeric',
             'date' => 'required|date',
-            'category_id' => 'required|integer|exists:categories,id',
+            'category_id' => 'required|integer|exists:category,id',
             'user_id' => 'required|integer|exists:users,id',
             'description' => 'nullable|string',
         ];

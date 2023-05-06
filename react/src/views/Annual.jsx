@@ -10,7 +10,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 
-export default function Monthly() {
+export default function Annual() {
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalSalaries, setTotalSalaries] = useState(0);
@@ -43,9 +43,11 @@ export default function Monthly() {
   const [prevMonthCheckInTotal, setPrevMonthCheckInTotal] = useState(0);
   const [prevMonthCheckOutTotal, setPrevMonthCheckOutTotal] = useState(0);
   const [monthAndYear, setMonthAndYear] = useState(new Date().toLocaleString("fr-FR", {
-    month: "long",
     year: "numeric"
   }));
+  // use state for monthly salaries
+  const [monthlySalaries, setMonthlySalaries] = useState([]);
+  const [monthlyExpenses, setMonthlyExpenses] = useState([]);
   // chart ref
   const chartRef = useRef();
   // how to use chartRef
@@ -57,16 +59,18 @@ export default function Monthly() {
     getCategories();
     getChecks();
     getEvents();
-    getPrevMonthSalariesAndExpenses();
+    getPrevYearSalariesAndExpenses();
   }, [])
 
   const getExpenses = () => {
     setLoading(true)
-    axiosClient.get(`/user-expenses/${localStorage.getItem('USER_ID')}`)
+    const year = new Date().getFullYear()
+    axiosClient.get(`/user-expenses-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         setLoading(false)
         setExpenses(data.expenses)
         setTotalExpenses(data.total)
+        setMonthlyExpenses(data.monthlyExpenses)
       })
       .catch(() => {
         setLoading(false)
@@ -74,11 +78,14 @@ export default function Monthly() {
   }
   const getSalaries = () => {
     setLoading(true)
-    axiosClient.get(`/user-salaries/${localStorage.getItem('USER_ID')}`)
+    // get the current year
+    const year = new Date().getFullYear()
+    axiosClient.get(`/user-salaries-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         setLoading(false)
         setSalaries(data.salaries)
         setTotalSalaries(data.total)
+        setMonthlySalaries(data.monthlySalaries)
       })
       .catch(() => {
         setLoading(false)
@@ -96,7 +103,8 @@ export default function Monthly() {
   const getChecks = () => {
     setLoading(true)
     const userId = localStorage.getItem('USER_ID')
-    axiosClient.get('/checks-valid/' + userId)
+    const year = new Date().getFullYear()
+    axiosClient.get(`/checks-valid-year/${userId}/${year}`)
       .then(({data}) => {
         setLoading(false)
         setChecks(data.checks)
@@ -112,7 +120,8 @@ export default function Monthly() {
   const getEvents = () => {
     setLoading(true)
     const userId = localStorage.getItem('USER_ID')
-    axiosClient.get('/user-events/' + userId)
+    const year = new Date().getFullYear()
+    axiosClient.get(`/user-events-year/${userId}/${year}`)
       .then(({data}) => {
         setLoading(false)
         setEvents(data.data)
@@ -121,84 +130,17 @@ export default function Monthly() {
         setLoading(false)
       })
   }
-  const checkIn = () => {
-    setCheckInTotal(0);
-    setCheckOutTotal(0);
-    checks.map(check => {
-      if (check.status === 'Entrant') {
-        setCheckInTotal(parseFloat(checkInTotal) + parseFloat(check.amount))
-      }
-      if (check.status === 'Sortant') {
-        setCheckOutTotal(parseFloat(checkOutTotal) + parseFloat(check.amount))
-      }
-    })
-  }
 
-  const onSubmitSalary = ev => {
-    ev.preventDefault()
-    // set user_id to current user
-    salary.user_id = user.id
-    // set date to current date
-    salary.date = new Date().toISOString().slice(0, 10)
-    axiosClient.post('/salaries', salary)
-      .then(() => {
-        setNotification('Salary was successfully created')
-        // reset form
-        setSalary({
-          id: null,
-          amount: '',
-          description: '',
-          user_id: '',
-        })
-        getSalaries()
-      })
-      .catch(err => {
-        const response = err.response;
-        if (response && response.status === 422) {
-          setErrors(response.data.errors)
-        }
-      })
-  }
-
-  const onSubmitExpense = ev => {
-    ev.preventDefault()
-    // check if is there an empty field
-    if (!expense.amount || !expense.description || !expense.category_id) {
-      setNotification('Please fill all fields')
-      return;
-    }
-    expense.user_id = user.id
-    expense.date = new Date().toISOString().slice(0, 10)
-    axiosClient.post('/expenses', expense)
-      .then(() => {
-        setNotification('Expense was successfully created')
-        setExpense({
-          id: null,
-          amount: '',
-          description: '',
-          user_id: '',
-          category_id: '',
-        })
-        getExpenses()
-      })
-      .catch(err => {
-        const response = err.response;
-        if (response && response.status === 422) {
-          setErrorsExpense(response.data.errors)
-        }
-      })
-  }
 
   const handleFilter = ev => {
     ev.preventDefault()
-    const month = ev.target[0].value
-    const year = ev.target[1].value
+    const year = ev.target[0].value
     // check if is there an empty field
-    if (!month || !year) {
-      setNotification('Please fill all fields')
+    if (!year) {
+      setNotification('Veuillez remplir le champ année')
       return;
     }
-    axiosClient.get(`/user-salaries/${localStorage.getItem('USER_ID')}/${month}/${year}`)
+    axiosClient.get(`/user-salaries-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         if (data.salaries.length === 0) {
           setNotification('No data found')
@@ -208,7 +150,7 @@ export default function Monthly() {
         setSalaries(data.salaries)
         setTotalSalaries(data.total)
       })
-    axiosClient.get(`/user-expenses/${localStorage.getItem('USER_ID')}/${month}/${year}`)
+    axiosClient.get(`/user-expenses-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         if (data.expenses.length === 0) {
           setNotification('No data found')
@@ -218,7 +160,7 @@ export default function Monthly() {
         setExpenses(data.expenses)
         setTotalExpenses(data.total)
       })
-    axiosClient.get(`/checks-valid/${localStorage.getItem('USER_ID')}/${month}/${year}`)
+    axiosClient.get(`/checks-valid-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         if (data.checks.length === 0) {
           setNotification('No data found')
@@ -229,7 +171,7 @@ export default function Monthly() {
         setCheckInTotal(data.totalEntrant)
         setCheckOutTotal(data.totalSortant)
       })
-    axiosClient.get(`/user-events/${localStorage.getItem('USER_ID')}/${month}/${year}`)
+    axiosClient.get(`/user-events-year/${localStorage.getItem('USER_ID')}/${year}`)
       .then(({data}) => {
         if (data.data.length === 0) {
           setNotification('No data found')
@@ -239,26 +181,25 @@ export default function Monthly() {
         setEvents(data.data)
       })
 
-    getPrevMonthSalariesAndExpenses(month - 1, year);
+    getPrevYearSalariesAndExpenses(year);
     // create a new date object with the month and year of the filter and set it to the state
-    const date = new Date(year, month - 1, 1).toLocaleString('fr-FR', {month: 'long', year: 'numeric'});
+    const date = new Date(year).toLocaleString('fr-FR', {year: 'numeric'});
     setMonthAndYear(date)
   }
 
   // get previous month salaries
-  const getPrevMonthSalariesAndExpenses = (monthFilter = null, yearFilter = null) => {
+  const getPrevYearSalariesAndExpenses = (yearFilter = null) => {
     const date = new Date();
-    const month = date.getMonth();
     const year = date.getFullYear();
-    axiosClient.get(`/user-salaries/${localStorage.getItem('USER_ID')}/${monthFilter ?? month}/${yearFilter ?? year}`)
+    axiosClient.get(`/user-salaries-year/${localStorage.getItem('USER_ID')}/${yearFilter ?? year - 1}`)
       .then(({data}) => {
         setPrevMonthTotalSalaries(data.total)
       })
-    axiosClient.get(`/user-expenses/${localStorage.getItem('USER_ID')}/${monthFilter ?? month}/${yearFilter ?? year}`)
+    axiosClient.get(`/user-expenses-year/${localStorage.getItem('USER_ID')}/${yearFilter ?? year - 1}`)
       .then(({data}) => {
         setPrevMonthTotalExpenses(data.total)
       })
-    axiosClient.get(`/checks-valid/${localStorage.getItem('USER_ID')}/${monthFilter ?? month}/${yearFilter ?? year}`)
+    axiosClient.get(`/checks-valid-year/${localStorage.getItem('USER_ID')}/${yearFilter ?? year - 1}`)
       .then(({data}) => {
         setPrevMonthCheckInTotal(data.totalEntrant)
         setPrevMonthCheckOutTotal(data.totalSortant)
@@ -270,7 +211,7 @@ export default function Monthly() {
     getSalaries()
     getExpenses()
     getCategories()
-    getPrevMonthSalariesAndExpenses()
+    getPrevYearSalariesAndExpenses()
     getChecks()
     getEvents()
     setMonthAndYear(new Date().toLocaleString('fr-FR', {
@@ -280,27 +221,31 @@ export default function Monthly() {
   }
 
   function calculateTotals(expenses, salaries) {
-    // Create a Set of unique dates by combining the dates from both arrays
-    const dates = new Set([...expenses.map(expense => expense.date), ...salaries.map(salary => salary.date)]);
+    // Create a Set of unique months by combining the months from both arrays
+    const months = new Set([
+      ...expenses.map(expense => expense.date.slice(0, 7)),
+      ...salaries.map(salary => salary.date.slice(0, 7))
+    ]);
 
     // Convert the Set to an array and sort it in ascending order
-    const sortedDates = Array.from(dates).sort((a, b) => new Date(a) - new Date(b));
+    const sortedMonths = Array.from(months).sort();
 
-    // Map over the sorted dates and calculate the total salary and expense for each day
-    const results = sortedDates.map(date => {
-      const totalSalary = salaries.filter(salary => salary.date === date).reduce((acc, salary) => acc + parseFloat(salary.amount), 0);
-      const totalExpense = expenses.filter(expense => expense.date === date).reduce((acc, expense) => acc + parseFloat(expense.amount), 0);
+    // Map over the sorted months and calculate the total salary and expense for each month
+    const results = sortedMonths.map(month => {
+      const totalSalary = salaries.filter(salary => salary.date.slice(0, 7) === month).reduce((acc, salary) => acc + parseFloat(salary.amount), 0);
+      const totalExpense = expenses.filter(expense => expense.date.slice(0, 7) === month).reduce((acc, expense) => acc + parseFloat(expense.amount), 0);
       return {
-        date,
+        month,
         totalSalary,
         totalExpense
       };
     });
     return results;
   }
+
   const results = calculateTotals(expenses, salaries);
   const dataBarChart = {
-    labels: results.map(result => result.date.slice(0, 11)),
+    labels: results.map(result => result.month.slice(0, 11)),
     datasets: [
       {
         label: 'Salaries',
@@ -403,11 +348,11 @@ export default function Monthly() {
 
   // dataLineChart for the evolution of the expenses by day of the month
   const dataLineChartExpenses = {
-    labels: expenses.map(group => group.date.slice(0, 11)),
+    labels: calculateTotals(expenses, salaries).map(group => group.month),
     datasets: [
       {
         label: 'Les dépenses par jour du mois',
-        data: expenses.map(group => group.amount),
+        data: calculateTotals(expenses, salaries).map(group => group.totalExpense),
         backgroundColor: [
           'rgba(255, 99, 132, 0.2)',
           'rgba(54, 162, 235, 0.2)',
@@ -429,11 +374,11 @@ export default function Monthly() {
     ],
   }
   const dataLineChartSalaries = {
-    labels: salaries.map(group => group.date.slice(0, 11)),
+    labels: calculateTotals(expenses, salaries).map(group => group.month),
     datasets: [
       {
-        label: 'Les salaires par jour du mois',
-        data: salaries.map(group => group.amount),
+        label: 'Les salaires par mois',
+        data: calculateTotals(expenses, salaries).map(group => group.totalSalary),
         backgroundColor: [
           'rgba(255, 99, 132, 0.2)',
           'rgba(54, 162, 235, 0.2)',
@@ -453,7 +398,8 @@ export default function Monthly() {
         borderWidth: 1,
       }
     ],
-  }
+  };
+
 
   const generatePDF = (monthAndYear) => {
     const charts = document.getElementById('charts');
@@ -485,23 +431,6 @@ export default function Monthly() {
       </h1>
       <form onSubmit={handleFilter}>
         <div className="flex flex-row space-x-6">
-          <div className="basis-1/1 mb-5 form-control">
-            <select className="form-select" name="" id="">
-              <option value="">Sélectionner un mois</option>
-              <option value="1">Janvier</option>
-              <option value="2">Février</option>
-              <option value="3">Mars</option>
-              <option value="4">Avril</option>
-              <option value="5">Mai</option>
-              <option value="6">Juin</option>
-              <option value="7">Juillet</option>
-              <option value="8">Août</option>
-              <option value="9">Septembre</option>
-              <option value="10">Octobre</option>
-              <option value="11">Novembre</option>
-              <option value="12">Décembre</option>
-            </select>
-          </div>
           <div className="basis-1/1 mb-5 form-control">
             <select className="form-select" name="" id="">
               <option value="">Sélectionner une année</option>
@@ -554,25 +483,26 @@ export default function Monthly() {
                 <tr>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Montant</th>
-                  <th className="px-4 py-2">Description</th>
                 </tr>
                 </thead>
                 <tbody>
-                {salaries.map((salary, index) => {
-                  const date = new Date(salary.date);
-                  const formattedDate = new Intl.DateTimeFormat('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }).format(date);
-                  return (
-                    <tr key={index}>
-                      <td className="border px-4 py-2">{formattedDate}</td>
-                      <td className="border px-4 py-2">{salary.amount} DT</td>
-                      <td className="border px-4 py-2">{salary.description}</td>
-                    </tr>
-                  );
-                })}
+                {
+                  // loop through the object monthlySalaries
+                  Object.keys(monthlySalaries).map((key, index) => {
+                    // create date object from month name
+                    const date = new Date(`${monthAndYear} ${key}`);
+                    //
+                    return (
+                      <tr key={index}>
+                        <td className="border px-4 py-2 text-capitalize">{date.toLocaleString('fr-FR', {
+                          month: 'long',
+                          year: "numeric"
+                        })}</td>
+                        <td className="border px-4 py-2">{monthlySalaries[key].toFixed(2).replace(/\.00$/, '')} DT</td>
+                      </tr>
+                    )
+                  })
+                }
                 </tbody>
               </table>
             </div>
@@ -587,29 +517,19 @@ export default function Monthly() {
                 <tr>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Montant</th>
-                  <th className="px-4 py-2">Catégorie</th>
-                  <th className="px-4 py-2 text-capitalize">événement</th>
-                  <th className="px-4 py-2">Description</th>
                 </tr>
                 </thead>
                 <tbody>
-                {expenses.map((expense, index) => {
-                  const date = new Date(expense.date);
-                  const formattedDate = new Intl.DateTimeFormat('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }).format(date);
-                  return (
-                    <tr key={index}>
-                      <td className="border px-4 py-2">{formattedDate}</td>
-                      <td className="border px-4 py-2">{expense.amount} DT</td>
-                      <td className="border px-4 py-2">{expense.category}</td>
-                      <td className="border px-4 py-2">{expense.event}</td>
-                      <td className="border px-4 py-2">{expense.description}</td>
-                    </tr>
-                  );
-                })}
+                {Object.keys(monthlyExpenses).map((key, index) => {
+                    const date = new Date(`${monthAndYear} ${key}`);
+                    return (
+                      <tr key={index}>
+                        <td className="border px-4 py-2 text-capitalize">{date.toLocaleString('fr-FR', {
+                          month: 'long',
+                          year: "numeric"
+                        })}</td>
+                        <td className="border px-4 py-2">{monthlyExpenses[key].toFixed(2).replace(/\.00$/, '')} DT</td>
+                      </tr>)})}
                 </tbody>
               </table>
             </div>
@@ -665,6 +585,7 @@ export default function Monthly() {
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Montant</th>
                   <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Validé</th>
                   <th className="px-4 py-2">Description</th>
                 </tr>
                 </thead>
@@ -681,6 +602,7 @@ export default function Monthly() {
                       <td className="border px-4 py-2">{formattedDate}</td>
                       <td className="border px-4 py-2">{check.amount} DT</td>
                       <td className="border px-4 py-2">{check.status}</td>
+                      <td className="border px-4 py-2"> {check.validated ? 'Oui' : 'Non'}</td>
                       <td className="border px-4 py-2">{check.description}</td>
                     </tr>
                   );
@@ -694,11 +616,11 @@ export default function Monthly() {
       <div className="chars" id="charts">
         <div className="flex mt-5 space-x-6" ref={chartRef}>
           <div className="basis-1/2 card page-break" >
-            <BarChart data={dataBarChart} title="Recette et dépense par jour"/>
+            <BarChart data={dataBarChart} title="Recette et dépense par mois"/>
           </div>
           <div className="basis-1/2 card page-break">
             <h4 className="text-center text-capitalize"></h4>
-            <LineChart data={dataLineChartSalaries} title="évolution du recette par jour"/>
+            <LineChart data={dataLineChartSalaries} title="évolution du recette par mois"/>
           </div>
         </div>
         <div className="flex mt-5 space-x-6">
@@ -706,7 +628,7 @@ export default function Monthly() {
             <BarChart data={dataBarChartCategories} title="Dépense par catégorie" options={optionsBarChartCategories}/>
           </div>
           <div className="basis-1/2 card">
-            <LineChart data={dataLineChartExpenses} title="évolution du dépense par jour"/>
+            <LineChart data={dataLineChartExpenses} title="évolution du dépense par mois"/>
           </div>
         </div>
         <div className="flex card mt-5" style={{height:"550px",width:"40%",margin:"auto"}}>
