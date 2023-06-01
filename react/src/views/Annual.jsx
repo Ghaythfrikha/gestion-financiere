@@ -22,7 +22,7 @@ export default function Annual() {
   const [checkOutTotal, setCheckOutTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const {setNotification} = useStateContext();
-  const {user} = useStateContext();
+  const {user, setUser} = useStateContext();
   const [salary, setSalary] = useState({
     id: null,
     amount: '',
@@ -60,8 +60,15 @@ export default function Annual() {
     getChecks();
     getEvents();
     getPrevYearSalariesAndExpenses();
+    console.log(user)
   }, [])
 
+  const getUser = () => {
+    axiosClient.get(`/users/${localStorage.getItem('USER_ID')}`)
+      .then(({data}) => {
+        setUser(data.data)
+      })
+  }
   const getExpenses = () => {
     setLoading(true)
     const year = new Date().getFullYear()
@@ -434,11 +441,12 @@ export default function Annual() {
           <div className="basis-1/1 mb-5 form-control">
             <select className="form-select" name="" id="">
               <option value="">Sélectionner une année</option>
-              <option value="2021">2021</option>
-              <option value="2022">2022</option>
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
+              {Array.from(new Array(10), (v, i) => {
+                const year = i + new Date(user.created_at).getFullYear();
+                return year <= new Date().getFullYear() ? year : null;
+              }).map(year => (
+                year && <option key={year} value={year}>{year}</option>
+              ))}
             </select>
           </div>
           <div className="basis-1/1">
