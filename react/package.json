@@ -20,7 +20,7 @@
     "react-bootstrap": "^2.7.2",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.4.4",
+    "react-router-dom": "^6.11.2",
     "react-to-print": "^2.14.12"
   },
   "devDependencies": {
